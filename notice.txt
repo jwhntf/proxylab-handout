@@ -1,0 +1,31 @@
+使用的协议是HTTP/1.0的不是1.1的
+必须具备的Headers字段包括Host, User-Agent, Connection, Proxy-Connection
+如果浏览器已经在HTTP请求中附加了Host字段, 那么proxy应当检测并且保持不变.
+其余字段是固定的, 不需要遵循浏览器发送过来的东西.
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3
+Connection: close
+Proxy-Connection: close
+如果浏览器还附加了任何其余的字段, 应当保持不变直接转发
+
+如果浏览器发过来的URL有port, 那么proxy应当连接到那个端口号而不是默认的80
+
+proxy的监听端口是命令行argv[1]传入的
+
+最好的缓存就是为每一个active的连接allocate一个buffer
+如果buffer大于最大对象大小, 这个buffer被废弃
+如果在buffer读满之前response就读好了, 那么这个object就自然地缓存了
+
+驱逐策略是LRU(least-recently-used), 读写这个object都算是一次use
+注意cache不能出现竞争.
+读写锁, nR1W. 同一时间只有一个线程应当允许写这个资源. 但是读没有限制.
+除了读写锁, 不严格遵守LRU驱逐策略也为支持多个读提供了便利.(怎么使用这个提示?)
+
+鲁棒性:
+1. SIGPIPE不应当终止程序
+2. 对一个关闭的套接字读会造成返回-1以及设置errno为ECONNRESET, 不应当终止程序.
+3. 对一个关闭的套接字写会造成返回-1以及设置error为EPIPE, 不应当终止程序.
+4. 注意二进制处理, 这时候不能使用字符串有关函数, 而是直接字节拷贝. memcpy而非strcpy.
+5. 从proxy发出的请求一定是HTTP/1.0的, 做替换.
+6. 注意read调用不一定能返回一个完整的HTTP请求或者响应.(可能是buffer不够大? 需要判定什么时候结束并且拼接?)
+
+对什么东西加读写锁? 对一个缓存buffer?
