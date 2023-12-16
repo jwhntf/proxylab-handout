@@ -1,9 +1,13 @@
-#include<string.h>
 #include<stdio.h>
-#include<stdlib.h>
+#include "hash.h"
+typedef struct {
+    unsigned int id;
+    unsigned int timestamp;
+    void *objp;
+} cache_object;
 int main() {
-    char buf[] = "asdfasdfasdf";
-    char *ptr1 = buf;
-    char *ptr2 = buf + 2;
-    printf("%c, %c, %ld\n", *ptr1, *ptr2, ptr2-ptr1);
+    char buf[] = "asdfasdfasdfa\0";
+    unsigned int hs = MurmurHash(buf, strlen(buf), 0x11451400);
+    printf("%s: 0x%x\n", buf, hs);
+    printf("size: %ld\n", sizeof(cache_object));
 }

@@ -34,4 +34,5 @@ int construct_real_request(HTTPRequest *request, char *real_request);
 int send_request(int facing_server_fd, const char *real_request, size_t len);
 void *read_response(int facing_server_fd, char *buf, size_t *read_len);
 int send_response(int connfd, const char *response, size_t len);
+size_t get_url(const HTTPRequest *request, char *buf, size_t len);
 #endif

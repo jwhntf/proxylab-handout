@@ -375,3 +375,15 @@ int send_response(int connfd, const char *response, size_t len) {
     int writed = rio_writen(connfd, response, len);
     return writed;
 }
+
+size_t get_url(const HTTPRequest *request, char *buf, size_t len) {
+    size_t host_len, path_len;
+    host_len = strlen(request->host);
+    path_len = strlen(request->path);
+    if (host_len + path_len >= len)
+        return -1;
+    memcpy(buf, request->host, host_len);
+    memcpy(buf + host_len, request->path, path_len);
+    *(buf + host_len + path_len) = '\0';
+    return host_len + path_len;
+}

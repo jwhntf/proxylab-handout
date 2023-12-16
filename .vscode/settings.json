@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "cstring": "c",
+        "__bit_reference": "c",
+        "__string": "c",
+        "csapp.h": "c"
+    }
+}
