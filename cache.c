@@ -1,6 +1,8 @@
 #include "cache.h"
 
+/* 全局Cache. 变量的定义要放到.c文件, 不能在.h文件! */
 cache_object_t Cache[CACHE_SLOT];
+/* 全局的计时器. 其实我感觉用unix时间time_t之类的更靠谱, 不过程序规模就这样也差不多了 */
 unsigned int global_time;
 
 void init_cache(cache_object_t *Cache, size_t cache_size) {
