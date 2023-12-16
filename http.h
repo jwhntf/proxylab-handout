@@ -22,17 +22,30 @@ typedef struct {
     struct header_entry* headers;
     char *body;
 }  HTTPRequest;
-void display(HTTPRequest *request);
+typedef struct {
+    enum Version version;
+    int status_code;
+    char *status_text;
+    struct header_entry* headers;
+    char *body;
+} HTTPResponse;
+void display_request(HTTPRequest *request);
 void request_init(HTTPRequest *request);
 void request_clear(HTTPRequest *request);
+void display_response(HTTPResponse *response);
+void response_init(HTTPResponse *response);
+void response_clear(HTTPResponse *response);
 int read_request(int fd, HTTPRequest*);
 
 /* 从request构建真正的HTTP请求, 写入real_request字符串 */
 /* 返回值为real_request的长度, 如果返回-1则构建失败 */
 /* 可以进一步解耦 */
 int construct_real_request(HTTPRequest *request, char *real_request);
+// int construct_cached_response(const HTTPResponse *response, char *response_buf);
 int send_request(int facing_server_fd, const char *real_request, size_t len);
 void *read_response(int facing_server_fd, char *buf, size_t *read_len);
 int send_response(int connfd, const char *response, size_t len);
+// int parse_response(HTTPResponse *response, char *response_line, size_t response_len, size_t *result);
+size_t get_content_length(const char *response_line);
 size_t get_url(const HTTPRequest *request, char *buf, size_t len);
 #endif

@@ -3,6 +3,9 @@
         "cstring": "c",
         "__bit_reference": "c",
         "__string": "c",
-        "csapp.h": "c"
+        "csapp.h": "c",
+        "__locale": "c",
+        "locale": "c",
+        "cache.h": "c"
     }
 }

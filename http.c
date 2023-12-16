@@ -1,6 +1,6 @@
 #include "http.h"
 #include "csapp.h"
-void display(HTTPRequest *request) {
+void display_request(HTTPRequest *request) {
     printf("Method: ");
     switch (request->method)
     {
@@ -348,14 +348,14 @@ void *read_response(int facing_server_fd, char *response_buf, size_t *read_len) 
     rio_readinitb(&rio, facing_server_fd);
     if ((rc = rio_readnb(&rio, buf, MAXLINE)) == 0)
         return -1;
-    printf("Read: %d bytes\n", rc);
+    // printf("Read: %d bytes\n", rc);
     time+=1;
     memcpy(guard, buf, sizeof(char) * rc);
     guard += rc;
 
     while((rc = rio_readnb(&rio, buf, MAXLINE))) {
-        printf("Read: %d bytes\n", rc);
-        printf("response_buf: %p\n", response_buf);
+        // printf("Read: %d bytes\n", rc);
+        // printf("response_buf: %p\n", response_buf);
         if (time == radix) {
             radix *= 2;
             size_t diff = guard - response_buf;
@@ -366,7 +366,7 @@ void *read_response(int facing_server_fd, char *response_buf, size_t *read_len) 
         memcpy(guard, buf, sizeof(char) * rc);
         guard += rc;
     }
-    printf("response_buf length: %ld\n", radix*MAXLINE);
+    // printf("response_buf length: %ld\n", radix*MAXLINE);
     *read_len = (guard - response_buf);
     return response_buf;
 }
@@ -386,4 +386,160 @@ size_t get_url(const HTTPRequest *request, char *buf, size_t len) {
     memcpy(buf + host_len, request->path, path_len);
     *(buf + host_len + path_len) = '\0';
     return host_len + path_len;
+}
+
+// int parse_response(HTTPResponse *response, char *response_line, size_t response_len, size_t *result) {
+//     size_t status_text_len, header_len, key_len, value_len, content_len;
+//     char version_buf[16], status_code_buf[16], status_text_buf[16];
+//     char header_buf[MAXLINE];
+//     char *p, *q;
+//     header_entry *ptr, **guard = &response->headers;
+//     char *line_ptr;
+   
+//     line_ptr = response_line;
+
+//     if ((p = strchr(line_ptr, ' ')) == NULL) {
+//         return -1;
+//     }
+//     memcpy(version_buf, line_ptr, p - line_ptr);
+//     line_ptr = p + 1;
+//     if ((p = strchr(line_ptr, ' ')) == NULL) {
+//         return -1;
+//     }
+//     memcpy(status_code_buf, line_ptr, p - line_ptr);
+//     line_ptr = p + 1;
+//     if ((p = strstr(line_ptr, "\r\n")) == NULL) {
+//         return -1;
+//     }
+//     memcpy(status_text_buf, line_ptr, p - line_ptr);
+//     line_ptr = p + 2;
+
+//     if (!strcasecmp(version_buf, "HTTP/0.9")) {
+//         response->version = V0_9;
+//     } else if (!strcasecmp(version_buf, "HTTP/1.0")) {
+//         response->version = V1_0;
+//     } else if (!strcasecmp(version_buf, "HTTP/1.1")) {
+//         response->version = V1_1;
+//     } else if (!strcasecmp(version_buf, "HTTP/2.0")) {
+//         response->version = V2_0;
+//     } else {
+//         response->version = VOther;
+//     }
+//     response->status_code = atoi(status_code_buf);
+//     status_text_len = strlen(status_text_len);
+    
+//     response->status_text = malloc(status_text_len + 1);
+//     memcpy(response->status_text, status_text_buf, status_text_len);
+//     response->status_text[status_text_len] = '\0';
+
+//     /* headers */
+//     while((q = strstr(line_ptr, "\r\n")) != line_ptr) {
+//         if ((p = strstr(line_ptr, ": ")) != NULL) {
+//             ptr = malloc(sizeof(header_entry));
+//             memset(ptr, 0, sizeof(header_entry));
+//             // *p = '\0';
+//             // *q = '\0';
+//             // key_len = strlen(line_ptr);
+//             // value_len = strlen(p + 2);
+//             key_len = p - line_ptr;
+//             value_len = q - (p + 2);
+//             ptr->key = malloc(sizeof(char) * (key_len + 1));
+//             ptr->value = malloc(sizeof(char) * (value_len + 1));
+//             memcpy(ptr->key, line_ptr, sizeof(char) * key_len);
+//             ptr->key[key_len] = '\0';
+//             memcpy(ptr->value, p + 1, sizeof(char) * value_len);
+//             ptr->value[value_len] = '\0';
+
+//             if (!strcasecmp(ptr->key, "Content-length")) {
+//                 content_len = atol(ptr->value);
+//             }
+
+//             *guard = ptr;
+//             guard = &(ptr->next);
+
+//             line_ptr = q + 2;
+//         }
+//     }
+//     /* 跳过空的CRLF行 */
+//     line_ptr = line_ptr + 2;
+//     /* body */
+//     response->body = malloc(sizeof(char) * (content_len + 1));
+//     memcpy(response->body, line_ptr, content_len);
+//     response->body[content_len] = '\0';
+//     *result = content_len;
+//     return 0;
+// }
+
+void display_response(HTTPResponse *response) {
+    printf("Version: ");
+    switch (response->version)
+    {
+    case V0_9:
+        printf("HTTP/0.9\n");
+        break;
+    case V1_0:
+        printf("HTTP/1.0\n");
+        break;
+    case V1_1:
+        printf("HTTP/1.1\n");
+        break;
+    case V2_0:
+        printf("HTTP/2.0\n");
+        break;
+    default:
+        printf("Unknown\n");
+        break;
+    }
+    printf("Status: %d %s\n", response->status_code, response->status_text);
+    header_entry *ptr;
+    for (ptr = response->headers; ptr; ptr = ptr->next) {
+        printf("Header key|%s, value|%s", ptr->key, ptr->value);
+    }
+
+    printf("Body: %s\n", response->body);
+}
+
+void response_init(HTTPResponse *response) {
+    response->version = VOther;
+    response->status_code = 0;
+    response->status_text = NULL;
+    response->headers = NULL;
+    response->body = NULL;
+}
+
+void response_clear(HTTPResponse *response) {
+    header_entry* prev, *succ;
+    response->version = VOther;
+    response->status_code = 0;
+    if (response->status_text) free(response->status_text);
+    response->status_text = NULL;
+    if (response->body) free(response->body);
+    response->body = NULL;
+    prev = succ = response->headers;
+    while (succ) {
+        succ = prev->next;
+        free(prev->key);
+        free(prev->value);
+        free(prev);
+        prev = succ;
+    }
+    response->headers = NULL;
+}
+
+size_t get_content_length(const char *response_line) {
+    char *p, *q;
+    char buf[128];
+    if ((p = strstr(response_line, "Content-length")) == NULL) {
+        if ((p = strstr(response_line, "Content-Length")) == NULL) {
+            return 0;
+        }
+    }
+    if ((q = strstr(p, "\r\n")) == NULL) {
+        return 0;
+    }
+    size_t numlen = q - (p + 16);
+    memcpy(buf, p + 16, sizeof(char) * numlen);
+    buf[numlen] = '\0';
+    size_t ans = atol(buf);
+    return ans;
 }
