@@ -43,6 +43,7 @@ void *thread(void *vargp) {
     request_init(&request);
     if(read_request(argp->connfd, &request) == -1) {
         fprintf(stderr, "Malformed Httprequest\n");
+        display_request(&request);
     }
     printf("Thread[%p]: received request from client\n", pthread_self());
    

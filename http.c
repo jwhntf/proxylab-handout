@@ -107,6 +107,8 @@ int read_request(int fd, HTTPRequest *request)
         request->method = POST;
     } else if (!strcasecmp(method, "PUT")) {
         request->method = PUT;
+    } else if (!strcasecmp(method, "HEAD")) {
+        request->method = HEAD;
     } else {
         return -1;
     }
@@ -213,6 +215,8 @@ int construct_real_request(HTTPRequest *request, char *real_request) {
         break;
     case PUT:
         method="PUT";
+    case HEAD:
+        method="HEAD";
     default:
         method="GET";
         break;

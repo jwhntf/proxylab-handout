@@ -5,7 +5,7 @@
 static const char *user_agent_hdr = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:10.0.3) Gecko/20120305 Firefox/10.0.3\r\n";
 static const char *connection_hdr = "close\r\n";
 static const char *proxy_connection_hdr = "close\r\n";
-enum Method { GET, POST, PUT, UNINIT, };
+enum Method { GET, POST, PUT, HEAD, UNINIT, };
 enum Version { V0_9, V1_0, V1_1, V2_0, VOther, };
 typedef struct {
     char *key;
