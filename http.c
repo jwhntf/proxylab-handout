@@ -109,8 +109,11 @@ int read_request(int fd, HTTPRequest *request)
         request->method = PUT;
     } else if (!strcasecmp(method, "HEAD")) {
         request->method = HEAD;
+    } else if (!strcasecmp(method, "CONNECT")) {
+        request->method = CONNECT;
     } else {
-        return -1;
+        // return -1;
+        request->method = UNINIT;
     }
 
     uri_len = strlen(uri);
@@ -215,8 +218,12 @@ int construct_real_request(HTTPRequest *request, char *real_request) {
         break;
     case PUT:
         method="PUT";
+        break;
     case HEAD:
         method="HEAD";
+        break;
+    case CONNECT:
+        method="CONNECT";
     default:
         method="GET";
         break;

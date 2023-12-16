@@ -7,6 +7,7 @@ typedef struct {
     unsigned int id;
     unsigned int timestamp;
     char *objp;
+    size_t obj_len;
 } cache_object_t;
 
 void init_cache(cache_object_t *Cache, size_t cache_size);

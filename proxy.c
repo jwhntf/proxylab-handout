@@ -60,9 +60,9 @@ void *thread(void *vargp) {
         cobjp->timestamp = global_time++;
         response_buf = malloc(sizeof(char) * MAX_OBJECT_SIZE * 2);
         memset(response_buf, 0, sizeof(char) * MAX_OBJECT_SIZE * 2);
-        memcpy(response_buf, cobjp->objp, strlen(cobjp->objp));
+        memcpy(response_buf, cobjp->objp, cobjp->obj_len);
         /* 访问全局变量结束, 释放锁 */
-        printf("Thread[%p]: received %ld bytes from cache\n", pthread_self(), strlen(response_buf));
+        printf("Thread[%p]: received %ld bytes from cache\n", pthread_self(), cobjp->obj_len);
         pthread_rwlock_unlock(&rwlock);
         send_response(argp->connfd, response_buf, sizeof(char) * MAX_OBJECT_SIZE * 2);
         free(response_buf);
@@ -100,6 +100,7 @@ void *thread(void *vargp) {
         cobjp->id = hash_result;
         cobjp->timestamp = global_time++;
         cobjp->objp = response_buf;
+        cobjp->obj_len = read_len;
         pthread_rwlock_wrlock(&rwlock);
         store_obj(Cache, CACHE_SLOT, cobjp);
         pthread_rwlock_unlock(&rwlock);
