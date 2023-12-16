@@ -76,9 +76,17 @@ void *thread(void *vargp) {
     pthread_rwlock_unlock(&rwlock);
     /* 没在缓存中找到, 再尝试构建请求向服务器发送 */
     facing_server_fd = open_clientfd(request.host, request.port);
+    printf("Thread[%p]: facing_server_fd: %d\n", pthread_self(), facing_server_fd);
+    if (facing_server_fd == -1) {
+        /* 无法打开则直接清理线程并且返回 */
+        close(argp->connfd);
+        free(argp);
+        return NULL;
+    }
+        
     real_request = malloc(sizeof(char) * MAXLINE);
     if ((write_len = construct_real_request(&request, real_request)) == -1) {
-        fprintf(stderr, "Fail to construct real request\n");
+        fprintf(stderr, "Thread[%p]: Fail to construct real request\n", pthread_self());
     };
     
     send_request(facing_server_fd, real_request, write_len);
@@ -86,13 +94,21 @@ void *thread(void *vargp) {
     real_request = NULL;
     request_clear(&request);
 
+    
     response_buf = malloc(sizeof(char) * MAXLINE);
+    char *temp_guard = response_buf;
     if ((response_buf = read_response(facing_server_fd, response_buf, &read_len)) == (void *)-1) {
-        fprintf(stderr, "Fail to construct real request\n");
+        fprintf(stderr, "Thread[%p]: Fail to read_response\n", pthread_self());
+        /* 如果不能读取到响应, 那么直接清理并且退出本线程 */
+        free(temp_guard);
+        response_buf = NULL;
+        close(argp->connfd);
+        free(argp);
+        return NULL;
     }
     printf("Thread[%p]: received %ld bytes from server\n", pthread_self(), read_len);
     send_response(argp->connfd, response_buf, read_len);
-
+    printf("Thread[%p]: response sent\n", pthread_self());
     /* 如果允许cache那么就parse然后cache */
     content_len = get_content_length(response_buf);
     if (content_len <= MAX_OBJECT_SIZE) {

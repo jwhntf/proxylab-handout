@@ -1,6 +1,6 @@
 #ifndef CACHE_H
 #define CACHE_H
-#define CACHE_SLOT 1024
+#define CACHE_SLOT 27
 #include <stdlib.h>
 #include <string.h>
 typedef struct {

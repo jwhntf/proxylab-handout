@@ -98,9 +98,9 @@ int read_request(int fd, HTTPRequest *request)
 
     if (!rio_readlineb(&rio, buf, MAXLINE))
         return -1;
-    // printf("First_line: %s\b", buf);
+    printf("First_line: %s\b", buf);
     sscanf(buf, "%s %s %s", method, uri, version);
-    // printf("Method: %s, URI: %s, Version: %s\n", method, uri, version);
+    printf("Method: %s, URI: %s, Version: %s\n", method, uri, version);
     if (!strcasecmp(method, "GET")) {
         request->method = GET;
     } else if (!strcasecmp(method, "POST")) {
@@ -120,44 +120,47 @@ int read_request(int fd, HTTPRequest *request)
     /* 拆解uri为hostname和资源路径 */
     if ((host_path_sprt = strstr(uri, "://")) != NULL) {
         host_start = host_path_sprt + 3;
-
-        if ((path_start = strchr(host_start, '/')) == NULL) {
-            /* 没有指明资源路径, 设置连'/'都没有 */
-            /* 那么将资源路径设置为'/', 自动附加 */
-            request->path = malloc(sizeof(char) * 2);
-            request->path[0] = '/';
-            request->path[1] = '\0';
-            path_start = uri + uri_len; /* path_start放到末尾 */
-        } else {
-            /* 指明了资源路径 */
-            path_len = strlen(path_start);
-            request->path = malloc(sizeof(char) * (path_len + 1));
-            memcpy(request->path, path_start, sizeof(char)*path_len);
-            request->path[path_len] = '\0';
-        }
-
-        /* 夹在host_start和path_start两个指针之间的就是hostname + port */
-        *path_start = '\0';
-        
-        if ((port_start = strchr(host_start, ':')) == NULL) {
-            /* 没有发现端口 */
-            /* 则request里面的端口号就空着 */
-            port_start = uri + uri_len; /* port_start放到末尾 */ 
-        } else {
-            /* 发现了端口号 */
-            port_len = strlen(port_start + 1);
-            request->port = malloc(sizeof(char) * (port_len + 1));
-            memcpy(request->port, port_start + 1, sizeof(char)*port_len);
-            request->port[port_len] = '\0';
-            // printf("PORTTTTTT: %s\n", request->port);
-        }
-        *port_start = '\0';
-
-        host_len = strlen(host_start);
-        request->host = malloc(sizeof(char) * (host_len + 1));
-        memcpy(request->host, host_start, sizeof(char) * host_len);
-        request->host[host_len] = '\0';
+    } else {
+        host_start = uri;
     }
+
+    if ((path_start = strchr(host_start, '/')) == NULL) {
+        /* 没有指明资源路径, 设置连'/'都没有 */
+        /* 那么将资源路径设置为'/', 自动附加 */
+        request->path = malloc(sizeof(char) * 2);
+        request->path[0] = '/';
+        request->path[1] = '\0';
+        path_start = uri + uri_len; /* path_start放到末尾 */
+    } else {
+        /* 指明了资源路径 */
+        path_len = strlen(path_start);
+        request->path = malloc(sizeof(char) * (path_len + 1));
+        memcpy(request->path, path_start, sizeof(char)*path_len);
+        request->path[path_len] = '\0';
+    }
+
+    /* 夹在host_start和path_start两个指针之间的就是hostname + port */
+    *path_start = '\0';
+        
+    if ((port_start = strchr(host_start, ':')) == NULL) {
+        /* 没有发现端口 */
+        /* 则request里面的端口号就空着 */
+        port_start = uri + uri_len; /* port_start放到末尾 */ 
+    } else {
+        /* 发现了端口号 */
+        port_len = strlen(port_start + 1);
+        request->port = malloc(sizeof(char) * (port_len + 1));
+        memcpy(request->port, port_start + 1, sizeof(char)*port_len);
+        request->port[port_len] = '\0';
+        // printf("PORTTTTTT: %s\n", request->port);
+    }
+    *port_start = '\0';
+
+    host_len = strlen(host_start);
+    request->host = malloc(sizeof(char) * (host_len + 1));
+    memcpy(request->host, host_start, sizeof(char) * host_len);
+    request->host[host_len] = '\0';
+    
 
     if (!strcasecmp(version, "HTTP/0.9")) {
         request->version = V0_9;
@@ -174,7 +177,7 @@ int read_request(int fd, HTTPRequest *request)
     while (strcmp(buf, "\r\n")) {
         /* while循环的这个判断条件会导致直接舍去请求体 */
         rio_readlineb(&rio, buf, MAXLINE);
-        // printf("%s\n", buf);
+        printf("%s", buf);
 
         if ((p = strchr(buf, ':')) != NULL) {
             ptr = malloc(sizeof(header_entry));
@@ -224,6 +227,7 @@ int construct_real_request(HTTPRequest *request, char *real_request) {
         break;
     case CONNECT:
         method="CONNECT";
+        break;
     default:
         method="GET";
         break;
@@ -348,6 +352,8 @@ int send_request(int facing_server_fd, const char *real_request, size_t len) {
 }
 
 void *read_response(int facing_server_fd, char *response_buf, size_t *read_len) {
+    if (facing_server_fd == -1)
+        return -1;
     rio_t rio;
     size_t radix = 1;
     size_t time = 0;

@@ -6,6 +6,8 @@
         "csapp.h": "c",
         "__locale": "c",
         "locale": "c",
-        "cache.h": "c"
+        "cache.h": "c",
+        "stdlib.h": "c",
+        "string.h": "c"
     }
 }
