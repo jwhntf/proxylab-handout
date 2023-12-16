@@ -197,9 +197,12 @@ int read_request(int fd, HTTPRequest *request)
 int construct_real_request(HTTPRequest *request, char *real_request) {
     /* 注意每一个header里面的value都是自带\r\n的 */
     char *method;
+    char *guard;
     header_entry *ptr;
     int have_connection = 0;
     int have_proxy_connection = 0;
+    size_t method_len, path_len, version_len, header_len, body_len;
+    guard = real_request;
     switch (request->method)
     {
     case GET:
@@ -214,31 +217,118 @@ int construct_real_request(HTTPRequest *request, char *real_request) {
         method="GET";
         break;
     }
-    sprintf(real_request, method);
-    sprintf(real_request, "%s %s", real_request, request->path);
-    sprintf(real_request, "%s %s\r\n", real_request, "HTTP/1.0");
+    // sprintf(real_request, method);
+    method_len = strlen(method);
+    memcpy(guard, method, sizeof(char) * method_len);
+    guard += method_len;
+
+    // sprintf(real_request, "%s %s", real_request, request->path);
+    *(guard++) = ' ';
+    path_len = strlen(request->path);
+    memcpy(guard, request->path, sizeof(char)*path_len);
+    guard += path_len;
+
+    // sprintf(real_request, "%s %s\r\n", real_request, "HTTP/1.0");
+    *(guard++) = ' ';
+    version_len = strlen("HTTP/1.0\r\n");
+    memcpy(guard, "HTTP/1.0\r\n", sizeof(char)*version_len);
+    guard += version_len;
+
     for(ptr = request->headers; ptr; ptr=ptr->next) {
-        if (!strcasecmp(ptr->key, "User-Agent"))
-            sprintf(real_request, "%s%s: %s", real_request, "User-Agent", user_agent_hdr);
-        else if (!strcasecmp(ptr->key, "Connection")) {
+        if (!strcasecmp(ptr->key, "User-Agent")){
+            // sprintf(real_request, "%s%s: %s", real_request, "User-Agent", user_agent_hdr);
+            header_len = strlen("User-Agent");
+            memcpy(guard, "User-Agent", sizeof(char)*header_len);
+            guard += header_len;
+
+            *(guard++) = ':';
+            *(guard++) = ' ';
+            header_len = strlen(user_agent_hdr);
+            memcpy(guard, user_agent_hdr, sizeof(char) * header_len);
+            guard += header_len;
+        } else if (!strcasecmp(ptr->key, "Connection")) {
             have_connection = 1;
-            sprintf(real_request, "%s%s: %s", real_request, "Connection", connection_hdr);
+            // sprintf(real_request, "%s%s: %s", real_request, "Connection", connection_hdr);
+            header_len = strlen("Connection");
+            memcpy(guard, "Connection", sizeof(char) * header_len);
+            guard += header_len;
+
+            *(guard++) = ':';
+            *(guard++) = ' ';
+
+            header_len = strlen(connection_hdr);
+            memcpy(guard, connection_hdr, sizeof(char) * header_len);
+            guard += header_len;
         }
         else if (!strcasecmp(ptr->key, "Proxy-Connection")) {
             have_proxy_connection = 1;
-            sprintf(real_request, "%s%s: %s", real_request, "Proxy-Connection", proxy_connection_hdr);
+            // sprintf(real_request, "%s%s: %s", real_request, "Proxy-Connection", proxy_connection_hdr);
+            header_len = strlen("Proxy-Connection");
+            memcpy(guard, "Proxy-Connection", sizeof(char)*header_len);
+            guard += header_len;
+
+            *(guard++) = ':';
+            *(guard++) = ' ';
+
+            header_len = strlen(proxy_connection_hdr);
+            memcpy(guard, proxy_connection_hdr, sizeof(char) * header_len);
+            guard += header_len;
         }
-        else 
-            sprintf(real_request, "%s%s:%s", real_request, ptr->key, ptr->value);
+        else {
+            // sprintf(real_request, "%s%s:%s", real_request, ptr->key, ptr->value);
+            header_len = strlen(ptr->key);
+            memcpy(guard, ptr->key, sizeof(char) * header_len);
+            guard += header_len;
+            
+            *(guard++) = ':';
+
+            header_len = strlen(ptr->value);
+            memcpy(guard, ptr->value, sizeof(char) * header_len);
+            guard += header_len;
+        }
     }
-    if (!have_connection)
-        sprintf(real_request, "%s%s: %s", real_request, "Connection", connection_hdr);
-    if (!have_proxy_connection)
-        sprintf(real_request, "%s%s: %s", real_request, "Proxy-Connection", proxy_connection_hdr);
-    if (request->body)
-        sprintf(real_request, "%s%s\r\n", real_request, request->body);
-    sprintf(real_request, "%s\r\n", real_request);
-    return strlen(real_request);
+    if (!have_connection) {
+        // sprintf(real_request, "%s%s: %s", real_request, "Connection", connection_hdr);
+        header_len = strlen("Connection");
+        memcpy(guard, "Connection", sizeof(char) * header_len);
+        guard += header_len;
+
+        *(guard++) = ':';
+        *(guard++) = ' ';
+
+        header_len = strlen(connection_hdr);
+        memcpy(guard, connection_hdr, sizeof(char) * header_len);
+        guard += header_len;
+    }
+    if (!have_proxy_connection) {
+        // sprintf(real_request, "%s%s: %s", real_request, "Proxy-Connection", proxy_connection_hdr);
+        header_len = strlen("Proxy-Connection");
+        memcpy(guard, "Proxy-Connection", sizeof(char)*header_len);
+        guard += header_len;
+
+        *(guard++) = ':';
+        *(guard++) = ' ';
+
+        header_len = strlen(proxy_connection_hdr);
+        memcpy(guard, proxy_connection_hdr, sizeof(char) * header_len);
+        guard += header_len;
+    }
+    if (request->body) {
+        // sprintf(real_request, "%s%s\r\n", real_request, request->body);
+        body_len = strlen(request->body);
+        memcpy(guard, request->body, sizeof(char)*body_len);
+        guard += body_len;
+
+        *(guard++) = '\r';
+        *(guard++) = '\n';
+    }
+    // sprintf(real_request, "%s\r\n", real_request);
+    *(guard++) = '\r';
+    *(guard++) = '\n';
+    body_len = guard - real_request;
+    // return strlen(real_request);
+    *(guard++) = '\0';
+    return body_len;
 }
 
 int send_request(int facing_server_fd, const char *real_request, size_t len) {
